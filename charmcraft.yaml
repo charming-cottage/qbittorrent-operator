@@ -3,13 +3,7 @@ type: charm
 title: QBittorrent
 summary: A torrent client with a web interface
 description: |
-  A single sentence that says what the charm is, concisely and memorably.
-
-  A paragraph of one to three short sentences, that describe what the charm does.
-
-  A third paragraph that explains what need the charm meets.
-
-  Finally, a paragraph that describes whom the charm is useful for.
+  A machine charm that deploys QBittorrent torrent client and mounts remote SSHFS share for the torrent destination.
 
 bases:
   - build-on:
@@ -34,10 +28,6 @@ config:
       description: The initial password for the web user. This should be changed after setup. Not updated on config change.
       type: string
       default: Password123
-    torrent-port:
-      description: The initial port to use for BitTorrent connections.  Not updated on config change.
-      type: int
-      default: 6881
     torrent-interface:
       description: The network interface to use for torrenting.
       type: string
@@ -47,7 +37,7 @@ config:
         An SFTP path to a network share where the torrent client writes to.
 
         Example: user@192.168.0.2:/home/user
-      type: str
+      type: string
     # TODO: Make this a secret instead.
     dest-key:
       description: An SSH private key to use for login to the destination server.

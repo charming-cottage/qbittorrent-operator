@@ -6,6 +6,7 @@
 
 import base64
 import configparser
+import contextlib
 import hashlib
 import logging
 import pathlib
@@ -127,6 +128,7 @@ class QbittorrentOperatorCharm(ops.CharmBase):
 
     def _on_start(self, event: ops.StartEvent):
         """Handle start event."""
+        subprocess.run(["systemctl", "start", "sshfs.service"], check=True)
         subprocess.run(["systemctl", "start", "qbittorrent.service"], check=True)
         self.unit.status = ops.ActiveStatus("running")
 
@@ -140,14 +142,21 @@ class QbittorrentOperatorCharm(ops.CharmBase):
         config.set_bittorrent_interface(self.config["torrent-interface"])
         self.unit.set_ports(int(self.config["port"]))
 
+        SSH_KEY_PATH.parent.mkdir(exist_ok=True)
+        shutil.chown(SSH_KEY_PATH.parent, "qbittorrent", "qbittorrent")
+        SSH_KEY_PATH.parent.chmod(0o700)
         SSH_KEY_PATH.write_text(self.config["dest-key"])
-        shutil.chown("/srv", "qbitorrent")
-        SSHFS_SERVICE_PATH.write_text(SSHFS_SERVICE_FILE.format(path=self.config["dest-path"]));
+        SSH_KEY_PATH.chmod(0o600)
+        shutil.chown(SSH_KEY_PATH, "qbittorrent", "qbittorrent")
+        with contextlib.suppress(PermissionError):
+            shutil.chown("/srv", "qbittorrent", "qbittorrent")
+        SSHFS_SERVICE_PATH.parent.mkdir(exist_ok=True)
+        SSHFS_SERVICE_PATH.write_text(SSHFS_SERVICE_FILE.format(path=self.config["dest-path"]))
 
     def _on_install(self, event: ops.InstallEvent):
         self.unit.status = ops.MaintenanceStatus("installing qbittorrent")
         apt = subprocess.Popen(
-            ["apt-get", "--yes", "install", "qbittorrent-nox", "sshfs"],
+            ["apt", "--yes", "install", "qbittorrent-nox", "sshfs"],
         )
         subprocess.run(
             ["useradd", "--shell", "/bin/false", "--create-home", "qbittorrent"],
@@ -156,7 +165,7 @@ class QbittorrentOperatorCharm(ops.CharmBase):
         CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         CONFIG_PATH.touch()
         for path in pathlib.Path("/home/qbittorrent").glob("**"):
-            shutil.chown(path, "qbittorrent")
+            shutil.chown(path, "qbittorrent", "qbittorrent")
         port = int(self.config["port"])
         config = QBittorrentConfig()
         config.setup()
