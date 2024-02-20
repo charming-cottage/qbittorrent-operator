@@ -1,4 +1,4 @@
-name: qbittorrent
+name: cottage-qbittorrent
 type: charm
 title: QBittorrent
 summary: A torrent client with a web interface
